@@ -2,21 +2,15 @@ package main.scala
 
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.linalg.Vectors
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.SparkContext
 import org.apache.spark.mllib.regression._
 import org.apache.spark.mllib.tree.DecisionTree
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
 import org.apache.spark.rdd.RDD
 
-object Main {
+object MainForestCov {
 
-  def main(args: Array[String]) {
-
-    //Create a SparkContext to initialize Spark
-    val conf = new SparkConf()
-    conf.setMaster("local")
-    conf.setAppName("Forest Cov")
-    val sc = new SparkContext(conf)
+  def runCluster(sc: SparkContext) {
 
     // Load the text into a Spark RDD, which is a distributed representation of each line of text
     val rawData = sc.textFile("hdfs:///user/ds/covtype.data")
