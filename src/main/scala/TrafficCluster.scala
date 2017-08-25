@@ -2,6 +2,7 @@ package main.scala
 
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.SparkContext
+import org.apache.spark.mllib.clustering._
 
 
 object MainTrafficCluster {
@@ -11,7 +12,7 @@ object MainTrafficCluster {
     // Load the text into a Spark RDD, which is a distributed representation of each line of text
     val rawData = sc.textFile("hdfs:///user/ds/traffic.data")
     println("Starting traffic")
-    val data = rawData.map { line =>
+    val labelandData = rawData.map { line =>
       val lineSplit = line.split(",")
 
       // Temporarily remove string categorical features
@@ -24,7 +25,23 @@ object MainTrafficCluster {
       (label, featureVector)
     }
 
+    val data = labelandData.values.cache()
 
+    val kmeans = new KMeans()
+    val model = kmeans.run(data)
+
+    //See what went into each clusters
+
+    val clusterLabelCount = labelandData.map {
+      case (label, datum) =>
+        val cluster = model.predict(datum)
+        (cluster, label)
+    }.countByValue()
+
+    clusterLabelCount.toSeq.sorted.foreach {
+      case ((cluster, label), count) =>
+        println(f"$cluster%1s$label%18s$count%8s")
+    }
   }
 
 
