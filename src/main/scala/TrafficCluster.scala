@@ -1,11 +1,25 @@
 package main.scala
 
+import org.apache.spark.mllib.feature.StandardScaler
 import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.clustering._
-
+import org.apache.spark.rdd._
 
 object MainTrafficCluster {
+
+  def distance(a: Vector, b: Vector): Double = {
+    Vectors.sqdist(a, b)
+
+  }
+
+
+  def distToCentroid(datum: Vector, model: KMeansModel) = {
+    val cluster = model.predict(datum)
+    val centroid = model.clusterCenters(cluster)
+    distance(centroid, datum)
+  }
 
   def runCluster(sc: SparkContext) {
 
@@ -27,21 +41,23 @@ object MainTrafficCluster {
 
     val data = labelandData.values.cache()
 
+    // Creating a Scaler model that standardizes with both mean and SD
+    val scaler = new StandardScaler(withMean = true, withStd = true).fit(data)
+    // Scale features using the scaler model
+
+    val scaledFeaturesData = scaler.transform(data)
+    val dataNormalized = scaledFeaturesData.cache()
+
+
+    (60 to 120 by 10).par.map(k => (k, clusteringScore(dataNormalized, k))).foreach(println)
+  }
+
+
+  def clusteringScore(data: RDD[Vector], k: Int) = {
     val kmeans = new KMeans()
+    kmeans.setK(k)
     val model = kmeans.run(data)
-
-    //See what went into each clusters
-
-    val clusterLabelCount = labelandData.map {
-      case (label, datum) =>
-        val cluster = model.predict(datum)
-        (cluster, label)
-    }.countByValue()
-
-    clusterLabelCount.toSeq.sorted.foreach {
-      case ((cluster, label), count) =>
-        println(f"$cluster%1s$label%18s$count%8s")
-    }
+    data.map(datum => distToCentroid(datum, model)).mean()
   }
 
 
