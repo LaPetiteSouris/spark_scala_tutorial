@@ -7,6 +7,12 @@ import com.databricks.spark.xml.XmlInputFormat
 
 object WikiAnalytics {
 
+  def parseContentofPage(str: String): String = {
+    val xmlContent = scala.xml.XML.loadString(str)
+    val revision = xmlContent \\ "text"
+    revision.text
+  }
+
   def runCluster(sc: SparkContext) {
     sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<page>")
     sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</page>")
@@ -18,8 +24,9 @@ object WikiAnalytics {
       classOf[LongWritable],
       classOf[Text])
 
-    val rawXmls = records.map(p => p._2.toString)
-    rawXmls.collect().foreach(println)
+    val rawContents = records.map(p => parseContentofPage(p._2.toString))
+
+    rawContents.take(20).foreach(println)
   }
 
 
