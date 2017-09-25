@@ -92,16 +92,26 @@ object WikiAnalytics {
     term.groupBy(i => i).mapValues(_.size)
   }
 
+  def documentFrequencies(docTermFreqs: RDD[Map[String, Int]]): Map[String, Int] = {
+    val zero = Map[String, Int]()
 
-  def merge(dfs: Map[String, Int], tfs: Map[String, Int]): Map[String, Int] = {
-    tfs.keySet.map(k => {
-      var count = 1
-      if (dfs.getOrElse(k, 0) != 0) {
-        count = dfs.getOrElse(k, 0) + 1
-      }
-      Map(k -> count)
-    }).reduceLeft(_ ++ _)
-    dfs ++ tfs
+    def merge(dfs: Map[String, Int], tfs: Map[String, Int]): Map[String, Int] = {
+      tfs.keySet.map(k => {
+        var count = 1
+        if (dfs.getOrElse(k, 0) != 0) {
+          count = dfs.getOrElse(k, 0) + 1
+        }
+        Map(k -> count)
+      }).reduceLeft(_ ++ _)
+      dfs ++ tfs
+    }
+
+    def mergeFinalMaps(map1: Map[String, Int], map2: Map[String, Int]): Map[String, Int] = {
+      map1 ++ map2.map { case (k, v) => k -> (v + map1.getOrElse(k, 0)) }
+    }
+
+    docTermFreqs.aggregate(zero)(merge, mergeFinalMaps)
+
   }
 
 
